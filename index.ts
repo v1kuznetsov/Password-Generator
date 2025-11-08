@@ -2,14 +2,39 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import * as charset from "./utils/charset.ts";
 import passwordGenerator from "./passwordGenerator.ts";
-import { passwordEnropy } from "./utils/security.ts";
+import {
+  passwordEnropy,
+  passwordStrength,
+  timeToCrack,
+} from "./utils/security.ts";
 
 async function main() {
   console.clear();
-  console.log(chalk.bold.cyanBright("\n🔒 PASSWORD GENERATOR CLI\n"));
-  console.log(chalk.gray("Create strong, secure, and stylish passwords ✨"));
+  console.log(chalk.bold.cyanBright("\n🔒 PASSWORD GENERATOR CLI"));
+  console.log(chalk.gray("\nCreate strong, secure, and stylish passwords ✨"));
   console.log(chalk.gray("──────────────────────────────────────────────\n"));
 
+  const menu = await inquirer.prompt([
+    {
+      type: "list",
+      name: "menu",
+      message: chalk.yellow("🔎 What do you want to do?"),
+      choices: [
+        { name: "🔐 Generate a password", value: "generate" },
+        { name: "❓ Check my password", value: "check" },
+        { name: "🚪 Exit", value: "exit" },
+      ],
+    },
+  ]);
+
+  if (menu.menu === "generate") {
+    await generatePasswordMenu();
+  } else if (menu.menu === "check") {
+    await checkPasswordMenu();
+  }
+}
+
+async function generatePasswordMenu() {
   const answers: { length: number; charsets: string[][] } =
     await inquirer.prompt([
       {
@@ -41,46 +66,114 @@ async function main() {
 
   const password: string = passwordGenerator(answers.length, answers.charsets);
   const entropy = passwordEnropy(answers.length, answers.charsets);
+  const time = timeToCrack(entropy.fullPasswordEntropy);
 
   console.log(chalk.greenBright.bold("\n🔐 Your password:"));
   console.log(chalk.cyanBright.bold(`\n   ${password}\n`));
-
-  console.log(chalk.yellowBright.bold("📊 Entropy details:"));
-  console.log(
-    `${chalk.gray("  🔸 Alphabet size:")} ${chalk.white(
-      entropy["Alphabet size"]
-    )}`
-  );
-  console.log(
-    `${chalk.gray("  🔹 Per character:")} ${chalk.white(
-      entropy["Char Entropy"].toFixed(2)
-    )} bits`
-  );
-  console.log(
-    `${chalk.gray("  🔹 Full password:")} ${chalk.white(
-      entropy["Full password entropy"].toFixed(2)
-    )} bits`
-  );
+  await checkPassword(password);
+  // console.log(chalk.yellowBright.bold("📊 Entropy details:"));
+  // console.log(
+  //   `${chalk.gray("  🔸 Alphabet size:")} ${chalk.white(entropy.alphabetSize)}`
+  // );
+  // console.log(
+  //   `${chalk.gray("  🔹 Per character:")} ${chalk.white(
+  //     entropy.oneCharEntropy.toFixed(2)
+  //   )} bits`
+  // );
+  // console.log(
+  //   `${chalk.gray("  🔹 Full password:")} ${chalk.white(
+  //     entropy.fullPasswordEntropy.toFixed(2)
+  //   )} bits`
+  // );
+  // console.log(
+  //   `${chalk.gray("  🔹 Time to crack:")} ${chalk.white(time.humanReadable)}`
+  // );
+  // console.log(`${chalk.gray("  🔹 Is secure:")} ${chalk.white(time.isSecure)}`);
 
   console.log(chalk.gray("\n──────────────────────────────────────────────"));
 
   const response = await inquirer.prompt([
     {
-      type: "confirm",
-      name: "regenerate",
-      message: chalk.magentaBright("🔁 Generate another password?"),
+      type: "list",
+      name: "endGeneration",
+      message: chalk.yellow("🔎 What do you want to do?"),
+      choices: [
+        { name: "🔙 Back to menu", value: "backToMenu" },
+        { name: "🔄 Regenerate", value: "regenerate" },
+        { name: "🚪 Exit", value: "exit" },
+      ],
       default: false,
     },
   ]);
 
-  if (response.regenerate) {
-    console.log(chalk.gray("\nRefreshing...\n"));
+  if (response.endGeneration === "backToMenu") {
     main();
-  } else {
+  } else if (response.endGeneration === "regenerate") {
+    generatePasswordMenu();
+  } else if (response.endGeneration === "exit") {
     console.log(
       chalk.greenBright.bold("\n✅ All done! Stay safe out there 💪\n")
     );
   }
+}
+
+async function checkPasswordMenu() {
+  const password: { password: string } = await inquirer.prompt([
+    {
+      type: "password",
+      name: "password",
+      message: chalk.yellow("🔐 Enter your password"),
+    },
+  ]);
+  await checkPassword(password.password);
+  console.log(chalk.gray("\n──────────────────────────────────────────────"));
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "endTest",
+      message: chalk.yellow("🔎 What do you want to do?"),
+      choices: [
+        { name: "🔙 Back to menu", value: "backToMenu" },
+        { name: "🔄 Try again", value: "tryAgain" },
+        { name: "🚪 Exit", value: "exit" },
+      ],
+      default: false,
+    },
+  ]);
+
+  if (response.endTest === "backToMenu") {
+    main();
+  } else if (response.endTest === "tryAgain") {
+    checkPasswordMenu();
+  } else if (response.endTest === "exit") {
+    console.log(
+      chalk.greenBright.bold("\n✅ All done! Stay safe out there 💪\n")
+    );
+  }
+}
+
+async function checkPassword(password: string) {
+  const result = passwordStrength(password);
+
+  console.log("💪 Strength score (0-4):", result.score);
+  console.log(
+    "📊 Estimated entropy (bits):",
+    Number(Number(result.guesses_log10 * Math.LOG2E * 10).toFixed(2))
+  );
+  console.log("⏱️ Crack times:");
+  console.log(
+    " - Online (slow):",
+    result.crack_times_display.online_no_throttling_10_per_second
+  );
+  console.log(
+    " - Offline (fast):",
+    result.crack_times_display.offline_fast_hashing_1e10_per_second
+  );
+  console.log(
+    "💬 Feedback:",
+    result.feedback.suggestions.join("; ") || "Looks good!"
+  );
 }
 
 main();
