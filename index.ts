@@ -8,11 +8,15 @@ import {
   timeToCrack,
 } from "./utils/security.ts";
 
+const lineBefore = "──────────────────────────────────────────────\n";
+const lineAfter = "\n──────────────────────────────────────────────";
+const line = "\n──────────────────────────────────────────────\n";
+
 async function main() {
   console.clear();
   console.log(chalk.bold.cyanBright("\n🔒 PASSWORD GENERATOR CLI"));
   console.log(chalk.gray("\nCreate strong, secure, and stylish passwords ✨"));
-  console.log(chalk.gray("──────────────────────────────────────────────\n"));
+  console.log(chalk.gray(lineBefore));
 
   const menu = await inquirer.prompt([
     {
@@ -62,35 +66,17 @@ async function generatePasswordMenu() {
       },
     ]);
 
-  console.log(chalk.gray("\n──────────────────────────────────────────────"));
+  console.log(chalk.gray(lineAfter));
 
   const password: string = passwordGenerator(answers.length, answers.charsets);
   const entropy = passwordEnropy(answers.length, answers.charsets);
   const time = timeToCrack(entropy.fullPasswordEntropy);
 
   console.log(chalk.greenBright.bold("\n🔐 Your password:"));
-  console.log(chalk.cyanBright.bold(`\n   ${password}\n`));
+  console.log(chalk.cyanBright.bold(`\n${password}\n`));
   await checkPassword(password);
-  // console.log(chalk.yellowBright.bold("📊 Entropy details:"));
-  // console.log(
-  //   `${chalk.gray("  🔸 Alphabet size:")} ${chalk.white(entropy.alphabetSize)}`
-  // );
-  // console.log(
-  //   `${chalk.gray("  🔹 Per character:")} ${chalk.white(
-  //     entropy.oneCharEntropy.toFixed(2)
-  //   )} bits`
-  // );
-  // console.log(
-  //   `${chalk.gray("  🔹 Full password:")} ${chalk.white(
-  //     entropy.fullPasswordEntropy.toFixed(2)
-  //   )} bits`
-  // );
-  // console.log(
-  //   `${chalk.gray("  🔹 Time to crack:")} ${chalk.white(time.humanReadable)}`
-  // );
-  // console.log(`${chalk.gray("  🔹 Is secure:")} ${chalk.white(time.isSecure)}`);
 
-  console.log(chalk.gray("\n──────────────────────────────────────────────"));
+  console.log(chalk.gray(line));
 
   const response = await inquirer.prompt([
     {
@@ -126,7 +112,7 @@ async function checkPasswordMenu() {
     },
   ]);
   await checkPassword(password.password);
-  console.log(chalk.gray("\n──────────────────────────────────────────────"));
+  console.log(chalk.gray(line));
 
   const response = await inquirer.prompt([
     {
@@ -163,8 +149,12 @@ async function checkPassword(password: string) {
   );
   console.log("⏱️ Crack times:");
   console.log(
-    " - Online (slow):",
+    " - Online:",
     result.crack_times_display.online_no_throttling_10_per_second
+  );
+  console.log(
+    " - Offline (slow):",
+    result.crack_times_display.offline_slow_hashing_1e4_per_second
   );
   console.log(
     " - Offline (fast):",
