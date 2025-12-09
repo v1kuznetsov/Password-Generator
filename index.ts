@@ -1,16 +1,13 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import * as charset from "./utils/charset.ts";
-import passwordGenerator from "./passwordGenerator.ts";
-import {
-  passwordEnropy,
-  passwordStrength,
-  timeToCrack,
-} from "./utils/security.ts";
+import passwordGenerator from "./utils/passwordGenerator.ts";
+import { passwordStrength } from "./utils/security.ts";
 
 const lineBefore = "──────────────────────────────────────────────\n";
 const lineAfter = "\n──────────────────────────────────────────────";
 const line = "\n──────────────────────────────────────────────\n";
+const passwords: string[] = [];
 
 async function main() {
   console.clear();
@@ -26,6 +23,7 @@ async function main() {
       choices: [
         { name: "🔐 Generate a password", value: "generate" },
         { name: "❓ Check my password", value: "check" },
+        { name: "📔 Generated passwords", value: "generatedPasswords" },
         { name: "🚪 Exit", value: "exit" },
       ],
     },
@@ -35,6 +33,10 @@ async function main() {
     await generatePasswordMenu();
   } else if (menu.menu === "check") {
     await checkPasswordMenu();
+  } else if (menu.menu === "generatedPasswords") {
+    await generatedPasswords();
+  } else if (menu.menu === "exit") {
+    exit();
   }
 }
 
@@ -44,7 +46,7 @@ async function generatePasswordMenu() {
       {
         type: "number",
         name: "length",
-        message: chalk.yellow("📏 Enter password length"),
+        message: chalk.yellow("📏 Enter password length:"),
         default: 16,
       },
       {
@@ -69,8 +71,7 @@ async function generatePasswordMenu() {
   console.log(chalk.gray(lineAfter));
 
   const password: string = passwordGenerator(answers.length, answers.charsets);
-  const entropy = passwordEnropy(answers.length, answers.charsets);
-  const time = timeToCrack(entropy.fullPasswordEntropy);
+  passwords.push(password);
 
   console.log(chalk.greenBright.bold("\n🔐 Your password:"));
   console.log(chalk.cyanBright.bold(`\n${password}\n`));
@@ -97,18 +98,16 @@ async function generatePasswordMenu() {
   } else if (response.endGeneration === "regenerate") {
     generatePasswordMenu();
   } else if (response.endGeneration === "exit") {
-    console.log(
-      chalk.greenBright.bold("\n✅ All done! Stay safe out there 💪\n")
-    );
+    exit();
   }
 }
 
 async function checkPasswordMenu() {
   const password: { password: string } = await inquirer.prompt([
     {
-      type: "password",
+      type: "input",
       name: "password",
-      message: chalk.yellow("🔐 Enter your password"),
+      message: chalk.yellow("🔐 Enter your password:"),
     },
   ]);
   await checkPassword(password.password);
@@ -133,16 +132,47 @@ async function checkPasswordMenu() {
   } else if (response.endTest === "tryAgain") {
     checkPasswordMenu();
   } else if (response.endTest === "exit") {
-    console.log(
-      chalk.greenBright.bold("\n✅ All done! Stay safe out there 💪\n")
-    );
+    exit();
   }
+}
+
+async function generatedPasswords() {
+  const options: [{ name: string; value: string }] = [
+    { name: "🔙 Back to menu", value: "backToMenu" },
+  ];
+  passwords.map((password) => {
+    options.push({ name: password, value: password });
+  });
+
+  console.log(line);
+
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "generatedPasswords",
+      message: "🧑🏻‍🚀 Choose password to copy:",
+      choices: [...options],
+      default: false,
+    },
+  ]);
+  if (
+    response.generatedPasswords === "backToMenu" ||
+    typeof response.generatedPasswords === "string"
+  ) {
+    main();
+  }
+}
+
+function exit() {
+  return console.log(
+    chalk.greenBright.bold("\n✅ All done! Stay safe out there 💪\n")
+  );
 }
 
 async function checkPassword(password: string) {
   const result = passwordStrength(password);
 
-  console.log("💪 Strength score (0-4):", result.score);
+  console.log("💪 Strength score (1-5):", result.score + 1);
   console.log(
     "📊 Estimated entropy (bits):",
     Number(Number(result.guesses_log10 * Math.LOG2E * 10).toFixed(2))
