@@ -5,6 +5,7 @@ import passwordGenerator from "./utils/passwordGenerator.ts";
 import { passwordStrength } from "./utils/security.ts";
 import getDataFromFile from "./utils/getDataFromFile.ts";
 import putDataInFile from "./utils/putDataInFile.ts";
+import clipboard from "clipboardy";
 
 const lineBefore = "──────────────────────────────────────────────\n";
 const lineAfter = "\n──────────────────────────────────────────────";
@@ -168,11 +169,11 @@ async function passwordsMenu() {
 }
 
 async function passwordPreferencesMenu(password: string) {
-  const passwordData = getDataFromFile().map((passwordInFile) => {
+  const passwordData = getDataFromFile().find((passwordInFile) => {
     if (passwordInFile.password === password) return passwordInFile;
-  });
-  console.log(`Password: ${passwordData[0]?.password}`);
-  console.log(`Creating date: ${passwordData[0]?.date}`);
+  })!;
+  console.log(`Password: ${passwordData.password}`);
+  console.log(`Creating date: ${passwordData.date}`);
   const response = await inquirer.prompt([
     {
       type: "list",
@@ -180,12 +181,20 @@ async function passwordPreferencesMenu(password: string) {
       message: "🧑🏻‍🚀 What do you want to do?",
       choices: [
         { name: "🔙 Back to passwords menu", value: "backToPasswordsMenu" },
+        {
+          name: "📝 Copy password to clipboard",
+          value: "copyPasswordToClipboard",
+        },
       ],
-      default: false,
+      default: "copyPasswordToClipboard",
     },
   ]);
   if (response.passwordsPreferences === "backToPasswordsMenu") {
     passwordsMenu();
+  } else if (response.passwordsPreferences === "copyPasswordToClipboard") {
+    clipboard.writeSync(passwordData.password);
+    console.log("\n✅ Password successfully copied to clipboard!\n");
+    passwordPreferencesMenu(password);
   }
 }
 
