@@ -168,12 +168,18 @@ async function passwordsMenu() {
   }
 }
 
-async function passwordPreferencesMenu(password: string) {
+async function passwordPreferencesMenu(
+  password: string,
+  originalEntry?: true | false
+) {
+  originalEntry = originalEntry ?? true;
   const passwordData = getDataFromFile().find((passwordInFile) => {
     if (passwordInFile.password === password) return passwordInFile;
   })!;
-  console.log(`Password: ${passwordData.password}`);
-  console.log(`Creating date: ${passwordData.date}`);
+  if (originalEntry === true) {
+    console.log(`Password: ${passwordData.password}`);
+    console.log(`Creating date: ${passwordData.date}`);
+  }
   const response = await inquirer.prompt([
     {
       type: "list",
@@ -194,7 +200,7 @@ async function passwordPreferencesMenu(password: string) {
   } else if (response.passwordsPreferences === "copyPasswordToClipboard") {
     clipboard.writeSync(passwordData.password);
     console.log("\n✅ Password successfully copied to clipboard!\n");
-    passwordPreferencesMenu(password);
+    passwordPreferencesMenu(password, false);
   }
 }
 
