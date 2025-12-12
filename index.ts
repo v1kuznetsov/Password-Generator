@@ -1,11 +1,24 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import * as charset from "./utils/charset.ts";
+import createEncryptionKey from "./utils/createEncryptionKey.ts";
 import passwordGenerator from "./utils/passwordGenerator.ts";
 import { passwordStrength } from "./utils/security.ts";
+import clipboard from "clipboardy";
+import dotenv from "dotenv";
+import fs from "fs";
+
+if (!fs.existsSync(".env")) {
+  createEncryptionKey();
+}
+if (!fs.existsSync("passwords.json")) {
+  fs.writeFileSync("passwords.json", "");
+}
+
+dotenv.config();
+
 import getDataFromFile from "./utils/getDataFromFile.ts";
 import putDataInFile from "./utils/putDataInFile.ts";
-import clipboard from "clipboardy";
 
 const lineBefore = "──────────────────────────────────────────────\n";
 const lineAfter = "\n──────────────────────────────────────────────";
