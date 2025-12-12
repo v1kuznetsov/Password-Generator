@@ -3,11 +3,12 @@ import chalk from "chalk";
 import * as charset from "./utils/charset.ts";
 import passwordGenerator from "./utils/passwordGenerator.ts";
 import { passwordStrength } from "./utils/security.ts";
+import getDataFromFile from "./utils/getDataFromFile.ts";
+import putDataInFile from "./utils/putDataInFile.ts";
 
 const lineBefore = "──────────────────────────────────────────────\n";
 const lineAfter = "\n──────────────────────────────────────────────";
 const line = "\n──────────────────────────────────────────────\n";
-const passwords: string[] = [];
 
 async function main() {
   console.clear();
@@ -23,7 +24,10 @@ async function main() {
       choices: [
         { name: "🔐 Generate a password", value: "generate" },
         { name: "❓ Check my password", value: "check" },
-        { name: "📔 Generated passwords", value: "generatedPasswords" },
+        {
+          name: "📔 Show generated passwords",
+          value: "showGeneratedPasswords",
+        },
         { name: "🚪 Exit", value: "exit" },
       ],
     },
@@ -33,8 +37,8 @@ async function main() {
     await generatePasswordMenu();
   } else if (menu.menu === "check") {
     await checkPasswordMenu();
-  } else if (menu.menu === "generatedPasswords") {
-    await generatedPasswords();
+  } else if (menu.menu === "showGeneratedPasswords") {
+    await passwordsMenu();
   } else if (menu.menu === "exit") {
     exit();
   }
@@ -71,7 +75,7 @@ async function generatePasswordMenu() {
   console.log(chalk.gray(lineAfter));
 
   const password: string = passwordGenerator(answers.length, answers.charsets);
-  passwords.push(password);
+  putDataInFile(password);
 
   console.log(chalk.greenBright.bold("\n🔐 Your password:"));
   console.log(chalk.cyanBright.bold(`\n${password}\n`));
@@ -136,30 +140,52 @@ async function checkPasswordMenu() {
   }
 }
 
-async function generatedPasswords() {
-  const options: [{ name: string; value: string }] = [
+async function passwordsMenu() {
+  const options: { name: string; value: string }[] = [
     { name: "🔙 Back to menu", value: "backToMenu" },
   ];
-  passwords.map((password) => {
-    options.push({ name: password, value: password });
+  getDataFromFile().map((password) => {
+    options.push({ name: password.password, value: password.password });
   });
-
   console.log(line);
-
   const response = await inquirer.prompt([
     {
       type: "list",
       name: "generatedPasswords",
-      message: "🧑🏻‍🚀 Choose password to copy:",
+      message: "🧑🏻‍🚀 Choose password to show preferences:",
       choices: [...options],
       default: false,
     },
   ]);
-  if (
-    response.generatedPasswords === "backToMenu" ||
+  if (response.generatedPasswords === "backToMenu") {
+    main();
+  } else if (
+    !(response.generatedPasswords === "backToMenu") &&
     typeof response.generatedPasswords === "string"
   ) {
-    main();
+    passwordPreferencesMenu(response.generatedPasswords);
+  }
+}
+
+async function passwordPreferencesMenu(password: string) {
+  const passwordData = getDataFromFile().map((passwordInFile) => {
+    if (passwordInFile.password === password) return passwordInFile;
+  });
+  console.log(`Password: ${passwordData[0]?.password}`);
+  console.log(`Creating date: ${passwordData[0]?.date}`);
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "passwordsPreferences",
+      message: "🧑🏻‍🚀 What do you want to do?",
+      choices: [
+        { name: "🔙 Back to passwords menu", value: "backToPasswordsMenu" },
+      ],
+      default: false,
+    },
+  ]);
+  if (response.passwordsPreferences === "backToPasswordsMenu") {
+    passwordsMenu();
   }
 }
 
