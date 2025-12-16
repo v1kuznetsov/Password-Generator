@@ -59,7 +59,7 @@ async function main() {
 }
 
 async function generatePasswordMenu() {
-  const answers: { length: number; charsets: string[][] } =
+  const answers: { length: number; charsets: string[][]; serviceName: string } =
     await inquirer.prompt([
       {
         type: "number",
@@ -84,12 +84,20 @@ async function generatePasswordMenu() {
           charset.SYMBOLS,
         ],
       },
+      {
+        type: "input",
+        name: "serviceName",
+        message: chalk.yellow(
+          "🔎 What is the name of the service, for this password?"
+        ),
+        default: "Just a password",
+      },
     ]);
 
   console.log(chalk.gray(lineAfter));
 
   const password: string = passwordGenerator(answers.length, answers.charsets);
-  putDataInFile(password);
+  putDataInFile(answers.serviceName, password);
 
   console.log(chalk.greenBright.bold("\n🔐 Your password:"));
   console.log(chalk.cyanBright.bold(`\n${password}\n`));
@@ -159,7 +167,7 @@ async function passwordsMenu() {
     { name: "🔙 Back to menu", value: "backToMenu" },
   ];
   getDataFromFile().map((password) => {
-    options.push({ name: password.password, value: password.password });
+    options.push({ name: password.serviceName, value: password.date });
   });
   console.log(line);
   const response = await inquirer.prompt([
@@ -182,12 +190,12 @@ async function passwordsMenu() {
 }
 
 async function passwordPreferencesMenu(
-  password: string,
+  date: string,
   originalEntry?: true | false
 ) {
   originalEntry = originalEntry ?? true;
   const passwordData = getDataFromFile().find((passwordInFile) => {
-    if (passwordInFile.password === password) return passwordInFile;
+    if (passwordInFile.date === date) return passwordInFile;
   })!;
   if (originalEntry === true) {
     console.log(`Password: ${passwordData.password}`);
@@ -213,7 +221,7 @@ async function passwordPreferencesMenu(
   } else if (response.passwordsPreferences === "copyPasswordToClipboard") {
     clipboard.writeSync(passwordData.password);
     console.log("\n✅ Password successfully copied to clipboard!\n");
-    passwordPreferencesMenu(password, false);
+    passwordPreferencesMenu(date, false);
   }
 }
 
