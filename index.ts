@@ -38,6 +38,7 @@ async function main() {
       choices: [
         { name: "🔐 Generate a password", value: "generate" },
         { name: "❓ Check my password", value: "check" },
+        { name: "🔑 Add your password", value: "addYourPassword" },
         {
           name: "📔 Show generated passwords",
           value: "showGeneratedPasswords",
@@ -51,6 +52,8 @@ async function main() {
     await generatePasswordMenu();
   } else if (menu.menu === "check") {
     await checkPasswordMenu();
+  } else if (menu.menu === "addYourPassword") {
+    await addYourPasswordMenu();
   } else if (menu.menu === "showGeneratedPasswords") {
     await passwordsMenu();
   } else if (menu.menu === "exit") {
@@ -159,6 +162,36 @@ async function checkPasswordMenu() {
     checkPasswordMenu();
   } else if (response.endTest === "exit") {
     exit();
+  }
+}
+
+async function addYourPasswordMenu() {
+  const response = await inquirer.prompt([
+    {
+      type: "input",
+      name: "yourServiceName",
+      message: chalk.yellow("🔎 What is the name of the service?"),
+      default: "My password",
+    },
+    {
+      type: "input",
+      name: "youPassword",
+      message: chalk.yellow("🔐 Enter your password:"),
+    },
+  ]);
+  const makeSure = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "makeSure",
+      message: chalk.yellow("🔎 Are you sure you want to add this password?"),
+      default: false,
+    },
+  ]);
+  if (makeSure.makeSure === true) {
+    putDataInFile(response.yourServiceName, response.youPassword);
+    main();
+  } else {
+    main();
   }
 }
 
